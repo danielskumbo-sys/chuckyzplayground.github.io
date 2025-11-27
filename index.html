@@ -1,16 +1,775 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<title>Chucky’z Playground</title>
-<style>
-body { background:#000; color:#fff; font-family:Arial; text-align:center; }
-h1 { margin-top:50px; font-size:48px; color:#ff00ff; text-shadow:0 0 20px #ff00ff; }
-#loader { margin-top:100px; font-size:30px; }
-</style>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>🎉 Chucky’z Playground — Party Mode</title>
+  <meta name="description" content="Chucky’z Playground — neon party single-file site with confetti, balloons, music, avatars, and more." />
+  <style>
+    :root{
+      --bg-dark: #06060a;
+      --panel: #0f0f1a88;
+      --neon-pink: #ff2bd5;
+      --neon-blue: #2bbcff;
+      --neon-yellow: #ffee55;
+      --neon-green: #4dff62;
+      --muted: #b7c0d9;
+      --glass: rgba(255,255,255,0.04);
+      --radius: 14px;
+      --accent: linear-gradient(90deg,var(--neon-pink),var(--neon-blue));
+      --sans: Inter, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+      --mono: ui-monospace, SFMono-Regular, Menlo, Monaco, "Roboto Mono", monospace;
+    }
+    html,body{height:100%; margin:0; background: radial-gradient(circle at 10% 10%, #131025 0%, #06060a 40%, #020205 100%); color:#fff; font-family:var(--sans); -webkit-font-smoothing:antialiased; -moz-osx-font-smoothing:grayscale; }
+    *{box-sizing:border-box}
+
+    /* Preloader / splash */
+    #preloader {
+      position:fixed; inset:0; display:flex; align-items:center; justify-content:center; z-index:2000;
+      background:linear-gradient(180deg, rgba(0,0,0,0.6), rgba(2,2,6,0.9));
+      backdrop-filter: blur(4px);
+    }
+    .spinner {
+      width:86px; height:86px; border-radius:50%; position:relative; filter:drop-shadow(0 8px 30px rgba(0,0,0,0.6));
+    }
+    .spinner::before, .spinner::after{
+      content:''; position:absolute; inset:6px; border-radius:50%;
+      background: conic-gradient(var(--neon-pink), var(--neon-blue), var(--neon-green), var(--neon-yellow), var(--neon-pink));
+      -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 10px), black calc(100% - 9px));
+    }
+    .spinner::after{ filter: blur(10px); opacity:0.55 }
+
+    /* Splash screen (mobile-friendly) */
+    #splash {
+      position:fixed; inset:0; display:flex; align-items:center; justify-content:center; z-index:1500;
+      background:linear-gradient(180deg, rgba(8,6,12,0.92), rgba(2,2,6,0.96));
+      color:white; text-align:center; padding:24px;
+    }
+    #splash .card { max-width:520px; padding:20px; border-radius:14px; border:1px solid rgba(255,255,255,0.04); background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01)); box-shadow:0 14px 60px rgba(0,0,0,0.6); }
+
+    /* Layout */
+    .site{ max-width:1150px; margin:26px auto; padding:22px; position:relative; z-index:1 }
+    header{ display:flex; justify-content:space-between; align-items:center; gap:12px; margin-bottom:18px; }
+    .brand{ display:flex; gap:12px; align-items:center; }
+    .logo-svg{ width:64px; height:64px; padding:8px; border-radius:12px; background:linear-gradient(135deg,var(--neon-pink),var(--neon-blue)); box-shadow:0 8px 30px rgba(43,188,255,0.12), inset 0 -6px 18px rgba(0,0,0,0.2); display:flex; align-items:center; justify-content:center; }
+    .logo-label{ font-weight:800; letter-spacing:0.4px; font-size:20px; color:#fff; text-shadow:0 6px 22px rgba(43,188,255,0.06) }
+    nav{ display:flex; gap:12px; align-items:center; }
+    nav a{ color:var(--muted); text-decoration:none; font-weight:600; }
+    .control-btn{ padding:10px 14px; border-radius:10px; border:0; cursor:pointer; font-weight:800; color:#070707; background:var(--neon-yellow); box-shadow:0 8px 30px rgba(255,229,85,0.08); }
+
+    /* Hero */
+    .hero{ padding:26px; border-radius:18px; border:1px solid rgba(255,255,255,0.04); background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01)); box-shadow:0 16px 60px rgba(10,8,20,0.6); margin-bottom:20px; overflow:hidden; position:relative; }
+    .hero h1{ margin:0; font-size:34px; line-height:1.02; background:linear-gradient(90deg,var(--neon-pink),var(--neon-blue)); -webkit-background-clip:text; color:transparent; text-shadow:0 6px 26px rgba(43,188,255,0.06) }
+    .hero p{ color:var(--muted); margin:10px 0 16px; max-width:900px; }
+
+    .grid{ display:grid; gap:14px; }
+    .grid.cols-3{ grid-template-columns:repeat(3,1fr); }
+    .card{ padding:14px; background:linear-gradient(180deg, rgba(255,255,255,0.015), rgba(255,255,255,0.01)); border-radius:12px; border:1px solid rgba(255,255,255,0.03); box-shadow:0 6px 30px rgba(0,0,0,0.6); }
+
+    /* Neon headings */
+    h2{ font-size:20px; margin:0 0 12px; color:var(--neon-green); text-shadow:0 0 14px rgba(77,255,98,0.09) }
+
+    pre.code{ background:rgba(3,6,12,0.6); padding:12px; border-radius:10px; font-family:var(--mono); color:#cff3ff; overflow:auto; border:1px solid rgba(255,255,255,0.03) }
+
+    /* avatars */
+    .avatars{ display:flex; gap:12px; align-items:center; }
+    .avatar{ width:86px; height:86px; border-radius:12px; display:flex; align-items:center; justify-content:center; cursor:pointer; user-select:none; transition:transform .28s cubic-bezier(.2,.9,.3,1); border:1px solid rgba(255,255,255,0.04); box-shadow:0 6px 22px rgba(0,0,0,0.5); background:linear-gradient(135deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01)); }
+    .avatar:hover{ transform:translateY(-6px) rotate(-2deg) }
+
+    /* balloons */
+    .balloon{
+      position:fixed;
+      width:48px; height:64px; border-radius:50% 50% 46% 46%;
+      display:flex; align-items:center; justify-content:center; color:#111; font-weight:700;
+      box-shadow:0 12px 40px rgba(0,0,0,0.45), inset 0 -8px 30px rgba(255,255,255,0.04);
+      z-index:1200;
+      cursor:pointer;
+    }
+    .balloon::after{
+      content:''; position:absolute; bottom:-18px; left:50%; transform:translateX(-50%); width:2px; height:20px; background:linear-gradient(#fff0, #fff0);
+    }
+    /* animation for floating */
+    @keyframes floaty {
+      0% { transform: translateY(0) rotate(-2deg) }
+      50% { transform: translateY(-22px) rotate(2deg) }
+      100% { transform: translateY(0) rotate(-2deg) }
+    }
+    .float { animation: floaty 4.8s ease-in-out infinite; }
+
+    /* party mode intensify */
+    .party-intense body, .party-intense .hero { filter: saturate(1.1) hue-rotate(-8deg) }
+    .glow { text-shadow:0 8px 30px rgba(255,43,213,0.12) }
+
+    /* footer */
+    footer{ margin-top:34px; text-align:center; color:var(--muted); font-size:13px }
+
+    /* responsive */
+    @media(max-width:900px){
+      .grid.cols-3{ grid-template-columns:1fr }
+      header{ flex-direction:column; align-items:flex-start; gap:12px }
+    }
+
+    /* loading-pulse for avatars when dancing */
+    .dance { animation: beat .5s ease-in-out infinite; }
+    @keyframes beat {
+      0%{ transform:translateY(0) scale(1) }
+      50%{ transform:translateY(-10px) scale(1.06) }
+      100%{ transform:translateY(0) scale(1) }
+    }
+
+    /* small helper */
+    .muted { color:var(--muted) }
+    .small { font-size:13px }
+    .btn-ghost { background:transparent; color:var(--neon-blue); border:1px solid rgba(255,255,255,0.03); padding:8px 10px; border-radius:10px; cursor:pointer }
+  </style>
 </head>
 <body>
-<h1>🎉 Chucky’z Playground 🎉</h1>
-<p>Welcome to the Party Theme Website!</p>
+
+<!-- Preloader -->
+<div id="preloader" aria-hidden="true">
+  <div class="spinner" role="img" aria-label="Loading animation"></div>
+</div>
+
+<!-- Mobile / Entrance Splash -->
+<div id="splash" aria-hidden="true">
+  <div class="card" role="dialog" aria-modal="true">
+    <svg width="120" height="120" viewBox="0 0 120 120" style="display:block;margin:0 auto 14px" aria-hidden="true">
+      <defs>
+        <linearGradient id="g1" x1="0" x2="1">
+          <stop offset="0" stop-color="#ff2bd5"/><stop offset="1" stop-color="#2bbcff"/>
+        </linearGradient>
+      </defs>
+      <rect rx="16" width="120" height="120" fill="url(#g1)"/>
+      <text x="60" y="72" text-anchor="middle" font-size="44" font-weight="900" fill="#fff" font-family="sans">CZ</text>
+    </svg>
+    <h2 style="margin:0 0 10px">Chucky’z Playground</h2>
+    <p class="muted small" style="margin:0 0 14px">Party theme loaded — neon lights and confetti await. Tap enter to join the playground.</p>
+    <div style="display:flex;gap:8px;justify-content:center">
+      <button id="enterBtn" class="control-btn">Enter Party 🎉</button>
+      <button id="skipSplash" class="btn-ghost">Skip</button>
+    </div>
+  </div>
+</div>
+
+<!-- Confetti canvas (improved) -->
+<canvas id="confetti" style="position:fixed;inset:0;pointer-events:none;z-index:1400"></canvas>
+
+<div class="site" id="mainContent" style="opacity:0;transform:translateY(6px)">
+
+  <header>
+    <div class="brand">
+      <div class="logo-svg" aria-hidden="true">
+        <!-- neon SVG logo -->
+        <svg width="48" height="48" viewBox="0 0 48 48" aria-hidden="true">
+          <defs>
+            <linearGradient id="lg" x1="0" x2="1">
+              <stop offset="0" stop-color="#ff2bd5"/><stop offset="1" stop-color="#2bbcff"/>
+            </linearGradient>
+            <filter id="glow"><feGaussianBlur stdDeviation="6" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+          </defs>
+          <rect rx="10" width="48" height="48" fill="url(#lg)" filter="url(#glow)"></rect>
+          <text x="24" y="32" text-anchor="middle" font-size="20" font-weight="800" fill="#fff" font-family="sans">CZ</text>
+        </svg>
+      </div>
+      <div>
+        <div class="logo-label">Chucky’z Playground</div>
+        <div class="muted small">Party Mode — neon • confetti • music</div>
+      </div>
+    </div>
+
+    <nav aria-label="Main">
+      <a href="#features">Features</a>
+      <a href="#install">Install</a>
+      <a href="#structure">Structure</a>
+      <a href="#deploy">Deploy</a>
+      <button id="partyToggle" class="control-btn" title="Toggle party mode">Party Mode: OFF</button>
+      <button id="musicToggle" class="control-btn" title="Play music">Play Music ▶</button>
+      <button id="downloadReadmeBtn" class="control-btn" title="Download README">Download README</button>
+    </nav>
+  </header>
+
+  <main>
+    <section class="hero" aria-labelledby="hero-title">
+      <h1 id="hero-title">Welcome to Chucky’z Playground 🎉</h1>
+      <p class="muted">A neon party playground — balloons, confetti, avatars, background synth music, and an interactive README generator. All one file. No installs.</p>
+
+      <div class="grid cols-3" style="margin-top:16px">
+        <div class="card">
+          <h3 class="small glow">🎈 Pop Balloons</h3>
+          <p class="muted small">Click any balloon floating around to pop it (with sound!)</p>
+        </div>
+        <div class="card">
+          <h3 class="small glow">👾 Avatars</h3>
+          <p class="muted small">Click avatars to make them dance & trigger confetti.</p>
+        </div>
+        <div class="card">
+          <h3 class="small glow">🔊 Music & Sounds</h3>
+          <p class="muted small">Synth-driven background music (toggleable) and click sounds.</p>
+        </div>
+      </div>
+    </section>
+
+    <section id="features">
+      <h2>✨ Features</h2>
+      <ul style="color:var(--muted); margin-left:18px">
+        <li>Neon party theme with glow effects</li>
+        <li>Confetti and balloon animations</li>
+        <li>WebAudio music & sound effects (no external files)</li>
+        <li>Interactive README generator & download</li>
+        <li>Mobile splash, preloader, avatars, and more</li>
+      </ul>
+    </section>
+
+    <section id="install">
+      <h2>📦 Installation</h2>
+      <p class="muted small">No installation required for this single-file page. For the multi-file Next.js project, run:</p>
+      <pre class="code">npm install
+npm run dev
+# open http://localhost:4028</pre>
+    </section>
+
+    <section id="structure">
+      <h2>📂 Project Structure</h2>
+      <div class="card" style="display:flex;flex-direction:column;gap:10px">
+        <div class="avatars" aria-hidden="false">
+          <div class="avatar" data-name="Disco D" title="Disco D" id="avatar1">
+            <!-- simple face -->
+            <svg width="56" height="56" viewBox="0 0 56 56" aria-hidden="true">
+              <defs><linearGradient id="a1" x1="0" x2="1"><stop offset="0" stop-color="#ff2bd5"/><stop offset="1" stop-color="#2bbcff"/></linearGradient></defs>
+              <rect rx="10" width="56" height="56" fill="url(#a1)"/>
+              <circle cx="18" cy="24" r="4" fill="#fff"/>
+              <circle cx="38" cy="24" r="4" fill="#fff"/>
+              <path d="M18 36c4 3 16 3 20 0" stroke="#fff" stroke-width="2" stroke-linecap="round" fill="none"/>
+            </svg>
+          </div>
+
+          <div class="avatar" data-name="Neon N" id="avatar2">
+            <svg width="56" height="56" viewBox="0 0 56 56" aria-hidden="true">
+              <defs><linearGradient id="a2" x1="0" x2="1"><stop offset="0" stop-color="#ffee55"/><stop offset="1" stop-color="#4dff62"/></linearGradient></defs>
+              <rect rx="10" width="56" height="56" fill="url(#a2)"/>
+              <circle cx="18" cy="24" r="4" fill="#081221"/>
+              <circle cx="38" cy="24" r="4" fill="#081221"/>
+              <path d="M18 36c4 -2 16 -2 20 0" stroke="#081221" stroke-width="2" stroke-linecap="round" fill="none"/>
+            </svg>
+          </div>
+
+          <div class="avatar" data-name="Glow G" id="avatar3">
+            <svg width="56" height="56" viewBox="0 0 56 56" aria-hidden="true">
+              <defs><linearGradient id="a3" x1="0" x2="1"><stop offset="0" stop-color="#ff8a00"/><stop offset="1" stop-color="#e52e71"/></linearGradient></defs>
+              <rect rx="10" width="56" height="56" fill="url(#a3)"/>
+              <circle cx="18" cy="24" r="4" fill="#fff"/>
+              <circle cx="38" cy="24" r="4" fill="#fff"/>
+              <path d="M18 36c4 6 16 -1 20 1" stroke="#fff" stroke-width="2" stroke-linecap="round" fill="none"/>
+            </svg>
+          </div>
+        </div>
+
+        <div class="tree" style="font-family:var(--mono); font-size:13px; color:#cdeeff; padding:12px">
+<pre>
+nextjs-js-tailwind/
+├─ public/
+├─ src/
+│  ├─ app/
+│  ├─ components/
+│  └─ styles/
+├─ package.json
+├─ tailwind.config.js
+└─ postcss.config.js
+</pre>
+        </div>
+      </div>
+    </section>
+
+    <section id="deploy">
+      <h2>🚀 Deployment</h2>
+      <p class="muted small">Drop this single HTML file onto GitHub Pages, Netlify (drag & drop), or any static host.</p>
+    </section>
+
+    <section id="readme">
+      <h2>📝 README</h2>
+      <div style="display:flex;gap:10px; flex-wrap:wrap; align-items:center; margin-bottom:10px">
+        <button id="previewReadme" class="control-btn">Preview README</button>
+        <button id="downloadReadme" class="control-btn">Download README</button>
+        <button id="partyConfetti" class="btn-ghost">Big Confetti</button>
+      </div>
+      <pre id="readmePreview" class="code" style="display:none; white-space:pre-wrap"></pre>
+    </section>
+
+    <footer>
+      🎉 Built for fun — Chucky’z Playground • Party Forever
+    </footer>
+
+  </main>
+</div>
+
+<script>
+/* ------------------------
+   Utility helpers & state
+   ------------------------ */
+const state = {
+  musicPlaying: false,
+  partyMode: false,
+  confettiActive: false,
+  audioCtx: null,
+  masterGain: null,
+  musicNode: null,
+  sfxGain: null,
+  confettiParticles: [],
+};
+
+/* ------------------------
+   Preloader -> fade then show splash
+   ------------------------ */
+document.addEventListener('DOMContentLoaded', () => {
+  // simulate short load
+  setTimeout(()=> {
+    const pre = document.getElementById('preloader');
+    pre.style.transition = 'opacity .6s, transform .6s';
+    pre.style.opacity = '0';
+    pre.style.transform = 'translateY(-10px)';
+    setTimeout(()=> pre.remove(), 700);
+    // show main content after a touch of delay for nice effect
+    const main = document.getElementById('mainContent');
+    main.style.transition = 'opacity .6s, transform .6s';
+    main.style.opacity = '1';
+    main.style.transform = 'translateY(0)';
+    // show splash unless previously skipped in session
+    if (!sessionStorage.getItem('cz_splash_skipped')) {
+      document.getElementById('splash').style.display = 'flex';
+    } else {
+      document.getElementById('splash').style.display = 'none';
+    }
+  }, 900);
+});
+
+/* ------------------------
+   Splash interactions
+   ------------------------ */
+document.getElementById('enterBtn').addEventListener('click', () => {
+  document.getElementById('splash').style.display = 'none';
+  sessionStorage.setItem('cz_splash_skipped', '1');
+});
+document.getElementById('skipSplash').addEventListener('click', () => {
+  document.getElementById('splash').style.display = 'none';
+  sessionStorage.setItem('cz_splash_skipped', '1');
+});
+
+/* ------------------------
+   Balloons: spawn and pop w/ sound
+   ------------------------ */
+const colors = ['#ff7bd9','#7bdcff','#fff37b','#7bffb3','#d58eff'];
+function spawnBalloons(count=6) {
+  for(let i=0;i<count;i++){
+    const b = document.createElement('div');
+    b.className = 'balloon float';
+    const size = 44 + Math.random()*36;
+    b.style.width = size + 'px';
+    b.style.height = Math.round(size*1.25)+'px';
+    const left = Math.random()*(window.innerWidth - 120) + 30;
+    const top = window.innerHeight + (Math.random()*60);
+    const color = colors[Math.floor(Math.random()*colors.length)];
+    b.style.background = color;
+    b.style.left = left + 'px';
+    b.style.top = (top + Math.random()*40) + 'px';
+    b.style.transition = 'transform .18s ease-out, opacity .3s';
+    b.style.zIndex = 1300;
+    b.title = 'Pop me!';
+    document.body.appendChild(b);
+
+    // animate upward
+    const duration = 8000 + Math.random()*10000;
+    let start = null;
+    function step(ts){
+      if(!start) start = ts;
+      const t = ts - start;
+      const progress = t / duration;
+      b.style.top = (top - progress * (window.innerHeight + 200)) + 'px';
+      b.style.transform = `rotate(${Math.sin(progress*6.28)*8}deg)`;
+      b.style.opacity = Math.max(0.02, 1-progress);
+      if(progress < 1) requestAnimationFrame(step);
+      else b.remove();
+    }
+    requestAnimationFrame(step);
+
+    // click to pop
+    b.addEventListener('click', (e)=>{
+      popSound();
+      popBalloon(b);
+      e.stopPropagation();
+    });
+
+    // small random hover bounce
+    b.addEventListener('mouseenter', ()=> {
+      b.style.transform = 'scale(1.06)';
+    });
+    b.addEventListener('mouseleave', ()=> {
+      b.style.transform = '';
+    });
+  }
+}
+function popBalloon(el){
+  // pop animation: scale + fade + burst particles
+  el.style.transition = 'transform .22s ease-out, opacity .18s';
+  el.style.transform = 'scale(1.6) rotate(-20deg)';
+  el.style.opacity = '0';
+  createBurst(el);
+  setTimeout(()=> el.remove(), 260);
+}
+function createBurst(el){
+  const rect = el.getBoundingClientRect();
+  for(let i=0;i<10;i++){
+    const p = document.createElement('div');
+    p.style.position='fixed';
+    p.style.left = (rect.left + rect.width/2) + 'px';
+    p.style.top = (rect.top + rect.height/2) + 'px';
+    p.style.width= '8px';
+    p.style.height= '8px';
+    p.style.borderRadius='50%';
+    p.style.background = colors[Math.floor(Math.random()*colors.length)];
+    p.style.zIndex='1600';
+    p.style.pointerEvents='none';
+    document.body.appendChild(p);
+    const vx = (Math.random()-0.5)*8;
+    const vy = (Math.random()-0.8)*10;
+    let t0 = null;
+    function step(ts){
+      if(!t0) t0 = ts;
+      const dt = (ts - t0)/1000;
+      p.style.transform = `translate(${vx*dt*60}px, ${vy*dt*60 + 0.5*9.8*dt*dt*10}px)`;
+      p.style.opacity = String(Math.max(0, 1 - dt*1.8));
+      if(dt < 1.2) requestAnimationFrame(step);
+      else p.remove();
+    }
+    requestAnimationFrame(step);
+  }
+}
+
+/* ------------------------
+   Confetti system (canvas)
+   ------------------------ */
+const confCanvas = document.getElementById('confetti');
+const confCtx = confCanvas.getContext('2d');
+function resizeConf(){
+  confCanvas.width = window.innerWidth;
+  confCanvas.height = window.innerHeight;
+}
+resizeConf();
+window.addEventListener('resize', resizeConf);
+
+function spawnConfetti(n=80){
+  for(let i=0;i<n;i++){
+    state.confettiParticles.push({
+    Math.random()*confCanvas.width,
+      y: -20 - Math.random()*confCanvas.height*0.5,
+      vx: (Math.random()-0.5)*6,
+      vy: Math.random()*3+2,
+      r: 4 + Math.random()*8,
+      angle: Math.random()*360,
+      color: colors[Math.floor(Math.random()*colors.length)],
+      rotSpin: (Math.random()-0.5)*0.2
+    });
+  }
+}
+function confettiLoop(){
+  confCtx.clearRect(0,0,confCanvas.width, confCanvas.height);
+  for(let i=state.confettiParticles.length-1;i>=0;i--){
+    const p = state.confettiParticles[i];
+    p.x += p.vx;
+    p.y += p.vy;
+    p.vy += 0.03;
+    p.angle += p.rotSpin;
+    confCtx.save();
+    confCtx.translate(p.x, p.y);
+    confCtx.rotate(p.angle);
+    confCtx.fillStyle = p.color;
+    confCtx.fillRect(-p.r/2, -p.r/2, p.r, p.r*0.6);
+    confCtx.restore();
+    if(p.y > confCanvas.height + 30) state.confettiParticles.splice(i,1);
+  }
+  requestAnimationFrame(confettiLoop);
+}
+confettiLoop();
+
+/* ------------------------
+   WebAudio: music + sfx
+   - Procedural music: simple arpeggiated synth
+   ------------------------ */
+function ensureAudio(){
+  if(state.audioCtx) return;
+  const AudioContext = window.AudioContext || window.webkitAudioContext;
+  if(!AudioContext) return;
+  const ctx = new AudioContext();
+  const master = ctx.createGain();
+  master.gain.value = 0.65;
+  master.connect(ctx.destination);
+
+  const sfx = ctx.createGain(); sfx.gain.value = 0.8; sfx.connect(master);
+
+  state.audioCtx = ctx; state.masterGain = master; state.sfxGain = sfx;
+}
+
+function startMusic(){
+  ensureAudio();
+  if(!state.audioCtx) return;
+  if(state.musicPlaying) return;
+  // simple chord/arpeggio with oscillator nodes
+  const ctx = state.audioCtx;
+  const bpm = 100;
+  let t0 = ctx.currentTime + 0.05;
+  const loopLen = 4; // seconds
+  const oscGain = ctx.createGain(); oscGain.gain.value = 0.0; oscGain.connect(state.masterGain);
+  state.musicNode = { tick: null, stop: null };
+
+  // schedule a repeating pattern using setInterval (simple)
+  state.musicNode.tick = setInterval(()=> {
+    const now = ctx.currentTime;
+    playNote(ctx, 60, 0.12, 0.02); // C4
+    playNote(ctx, 64, 0.12, 0.04, 0.06); // E4
+    playNote(ctx, 67, 0.12, 0.06, 0.1); // G4
+    // small synth hit occasionally
+    if(Math.random() > 0.6) {
+      playNote(ctx, 72 + Math.floor(Math.random()*5), 0.08, 0.08, 0.02);
+    }
+  }, 420);
+  state.musicPlaying = true;
+}
+
+function stopMusic(){
+  if(state.musicNode && state.musicNode.tick) {
+    clearInterval(state.musicNode.tick);
+    state.musicNode.tick = null;
+  }
+  state.musicPlaying = false;
+}
+
+function playNote(ctx, midi, dur=0.12, attack=0.02, delay=0){
+  const freq = 440 * Math.pow(2, (midi-69)/12);
+  const o = ctx.createOscillator();
+  const g = ctx.createGain();
+  o.type = 'sawtooth';
+  o.frequency.value = freq;
+  g.gain.value = 0.0001;
+  o.connect(g);
+  g.connect(state.masterGain);
+  const now = ctx.currentTime + delay;
+  g.gain.cancelScheduledValues(now);
+  g.gain.setValueAtTime(0.0001, now);
+  g.gain.linearRampToValueAtTime(0.12, now + attack);
+  g.gain.exponentialRampToValueAtTime(0.0001, now + attack + dur);
+  o.start(now);
+  o.stop(now + attack + dur + 0.02);
+}
+
+/* click sfx */
+function popSound(){
+  if(!state.audioCtx) return;
+  const ctx = state.audioCtx;
+  const o = ctx.createOscillator();
+  const g = ctx.createGain();
+  o.type = 'square';
+  o.frequency.value = 120 + Math.random()*240;
+  g.gain.value = 0.02;
+  o.connect(g); g.connect(state.sfxGain);
+  g.gain.setValueAtTime(0.02, ctx.currentTime);
+  g.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.4);
+  o.start(); o.stop(ctx.currentTime + 0.45);
+}
+
+/* small chime for avatar */
+function chime(){
+  if(!state.audioCtx) return;
+  const ctx = state.audioCtx;
+  playNote(ctx, 76, 0.16, 0.01);
+  playNote(ctx, 79, 0.12, 0.02, 0.06);
+  playNote(ctx, 83, 0.08, 0.03, 0.12);
+}
+
+/* ------------------------
+   Hook up UI buttons
+   ------------------------ */
+document.getElementById('musicToggle').addEventListener('click', (e)=>{
+  ensureAudio();
+  if(!state.audioCtx) {
+    alert('Audio not supported in this browser.');
+    return;
+  }
+  if(!state.musicPlaying){
+    startMusic();
+    e.target.textContent = 'Pause Music ';
+  } else {
+    stopMusic();
+    e.target.textContent = 'Play Music ';
+  }
+});
+
+document.getElementById('partyToggle').addEventListener('click', (e)=>{
+  state.partyMode = !state.partyMode;
+  document.documentElement.classList.toggle('party-intense', state.partyMode);
+  e.target.textContent = state.partyMode ? 'Party Mode: ON ' : 'Party Mode: OFF';
+  if(state.partyMode){
+    spawnConfetti(140);
+    spawnBalloons(8);
+  }
+});
+
+/* avatar click interactions */
+document.querySelectorAll('.avatar').forEach(a => {
+  a.addEventListener('click', async ()=> {
+    a.classList.add('dance');
+    chime(); spawnConfetti(30);
+    // stop dancing after some seconds
+    setTimeout(()=> a.classList.remove('dance'), 1600);
+  });
+});
+
+/* spawn a few balloons initially */
+spawnBalloons(6);
+
+/* clicking 'big confetti' */
+document.getElementById('partyConfetti').addEventListener('click', ()=>{
+  spawnConfetti(220);
+});
+
+/* improve: click anywhere to produce small pop */
+document.body.addEventListener('click', (e) => {
+  // don't trigger when clicking controls (buttons)
+  let el = e.target;
+  while(el){
+    if(el.tagName === 'BUTTON' || el.tagName === 'A' || el.classList && el.classList.contains('avatar')) return;
+    el = el.parentElement;
+  }
+  // occasional small confetti
+  spawnConfetti(12);
+  if(state.audioCtx) popSound();
+});
+
+/* README generator & download */
+function generateReadme(){
+  return `#  Chucky'z Playground � Party Website
+
+A neon, confetti-filled playground built as a single working HTML file.
+
+## Features
+- Neon party theme
+- Glow effects everywhere
+- Confetti animation
+- Balloons and avatars
+- Procedural background music (WebAudio)
+- README.md generator
+- 100% single-file website
+
+## Install
+\`\`\`bash
+# For multi-file project:
+npm install
+npm run dev
+# Visit http://localhost:4028
+\`\`\`
+
+## Structure
+\`\`\`
+nextjs-js-tailwind/
+ public/
+ src/
+   app/
+   components/
+   styles/
+\`\`\`
+`;
+}
+document.getElementById('downloadReadme').addEventListener('click', ()=>{
+  const blob = new Blob([generateReadme()], {type:'text/plain'});
+  const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'README.md'; a.click();
+  URL.revokeObjectURL(a.href);
+});
+document.getElementById('downloadReadmeBtn').addEventListener('click', ()=>{
+  const blob = new Blob([generateReadme()], {type:'text/plain'});
+  const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'README.md'; a.click();
+  URL.revokeObjectURL(a.href);
+});
+document.getElementById('previewReadme').addEventListener('click', ()=>{
+  const el = document.getElementById('readmePreview');
+  if(el.style.display === 'block'){
+    el.style.display = 'none';
+  } else {
+    el.textContent = generateReadme();
+    el.style.display = 'block';
+  }
+});
+
+/* spawn confetti function used elsewhere */
+function spawnConfetti(n){ spawnConfettiInternal(n); }
+function spawnConfettiInternal(n=80){
+  spawnConfetti(n); // alias - actual system pushes into state.confettiParticles
+}
+
+/* ------------------------
+   Start confetti animation loop (already defined earlier)
+   ------------------------ */
+
+/* ------------------------
+   Extra: interactive background gentle floating shapes (CSS-free)
+   ------------------------ */
+/* nothing needed; CSS provides visual */
+
+/* ------------------------
+   Small accessibility / keyboard shortcuts
+   ------------------------ */
+document.addEventListener('keydown', (e)=>{
+  if(e.key === 'm'){
+    document.getElementById('musicToggle').click();
+  } else if(e.key === 'p'){
+    document.getElementById('partyToggle').click();
+  } else if(e.key === 'r'){
+    document.getElementById('downloadReadme').click();
+  }
+});
+/* small safety: ensure audio context is resumed upon user gesture for autoplay browsers */
+window.addEventListener('click', async () => {
+  if(state.audioCtx && state.audioCtx.state === 'suspended') {
+    try { await state.audioCtx.resume(); } catch(e) {}
+  }
+});
+
+/* spawnConfetti alias fix: we created function earlier; make sure it exists in scope */
+if(typeof spawnConfettiInternal !== 'function'){
+  window.spawnConfettiInternal = function(n){
+    for(let i=0;i<n;i++){
+      state.confettiParticles.push({
+        x: Math.random()*confCanvas.width,
+        y: -20 - Math.random()*confCanvas.height*0.5,
+        vx: (Math.random()-0.5)*6,
+        vy: Math.random()*3+2,
+        r: 4 + Math.random()*8,
+        angle: Math.random()*360,
+        color: colors[Math.floor(Math.random()*colors.length)],
+        rotSpin: (Math.random()-0.5)*0.2
+      });
+    }
+  }
+}
+
+/* kick off a few confetti when page fully loaded to show effect if party mode on */
+setTimeout(()=> {
+  if(sessionStorage.getItem('cz_splash_skipped')) {
+    // gentle welcome puffs
+    spawnConfettiInternal(40);
+  }
+}, 1400);
+
+/* animate confetti loop defined earlier - ensure it's running */
+(function confettiRender(){
+  // already created initial loop earlier in previous single-file versions; reusing simplified drawing
+  if(confCanvas.width === 0) resizeConf();
+  // draw loop handled above in confettiLoop() call; ensure continuous but safety-check
+  requestAnimationFrame(confettiRender);
+})();
+
+/* Expose spawnBalloons to console for power users */
+window.spawnBalloons = spawnBalloons;
+
+/* End of script */
+</script>
+
 </body>
 </html>
